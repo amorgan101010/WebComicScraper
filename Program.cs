@@ -53,10 +53,17 @@ foreach (var imagePath in imagePaths)
     doc.Add(image);
 
     // Add header
+    // Adapted from https://github.com/itext/itext-publications-samples-dotnet/blob/master/itext/itext.samples/itext/samples/sandbox/events/VariableHeader.cs
     var page = pdfDoc.GetLastPage();
-    var header = imagePath.Split("/").Last();
-    new Canvas(page, page.GetPageSize())
-                    .ShowTextAligned(header, 0, 0, TextAlignment.CENTER)
+    var header = imagePath.Split("/").Last().Split(".png").First();
+    var debugPageSize = page.GetPageSize();
+    var yOffset = 20;
+    new Canvas(page, pageSize)
+                    .ShowTextAligned(
+                        header,
+                        30,
+                        pageSize.GetHeight() - yOffset,
+                        null)
                     .Close();
 }
 
