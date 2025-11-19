@@ -39,6 +39,8 @@ Image image = new Image(ImageDataFactory.Create(imagePaths.First()));
 PdfDocument pdfDoc = new PdfDocument(new PdfWriter(Directory.GetCurrentDirectory() + "/compiled.pdf"));
 Document doc = new Document(pdfDoc, new PageSize(image.GetImageWidth(), image.GetImageHeight()));
 
+// TODO: As it is currently this isn't going to preserve the order of non-numbered strips...
+// I need to tack on an absolute number to each image name and remove it when labeling the PDF.
 foreach (var imagePath in imagePaths)
 {
     image = new Image(ImageDataFactory.Create(imagePath));
