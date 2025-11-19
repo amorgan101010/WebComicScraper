@@ -2,16 +2,20 @@
 using iText.IO.Image;
 using iText.Kernel.Geom;
 using iText.Kernel.Pdf;
+using iText.Kernel.Pdf.Event;
 using iText.Layout;
 using iText.Layout.Element;
+using iText.Layout.Properties;
 using OpenQA.Selenium;
 using OpenQA.Selenium.Chrome;
 
-IWebDriver driver = new ChromeDriver();
-
 var currentUrl = "https://www.nuklearpower.com/2001/03/02/episode-001-were-going-where/";
 //var finalUrl = "https://www.nuklearpower.com/2010/06/01/the-epilogue/";
-var finalUrl = "https://www.nuklearpower.com/2001/03/14/episode-005-run-heroes-run/";
+const string finalUrl = "https://www.nuklearpower.com/2001/03/14/episode-005-run-heroes-run/";
+
+var webdriverOptions = new ChromeOptions();
+webdriverOptions.AddArgument("--headless=new");
+IWebDriver driver = new ChromeDriver(webdriverOptions);
 
 do
 {
@@ -44,8 +48,16 @@ Document doc = new Document(pdfDoc, new PageSize(image.GetImageWidth(), image.Ge
 foreach (var imagePath in imagePaths)
 {
     image = new Image(ImageDataFactory.Create(imagePath));
-    pdfDoc.AddNewPage(new PageSize(image.GetImageWidth(), image.GetImageHeight()));
+    var pageSize = new PageSize(image.GetImageWidth(), image.GetImageHeight());
+    pdfDoc.AddNewPage(pageSize);
     doc.Add(image);
+
+    // Add header
+    var page = pdfDoc.GetLastPage();
+    var header = imagePath.Split("/").Last();
+    new Canvas(page, page.GetPageSize())
+                    .ShowTextAligned(header, 0, 0, TextAlignment.CENTER)
+                    .Close();
 }
 
 doc.Close();
@@ -61,4 +73,3 @@ static async Task DownloadComicAsync(string comicUrl, string comicName)
 
     File.WriteAllBytes(localPath, imageBytes);
 }
-
