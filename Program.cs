@@ -1,4 +1,9 @@
 ﻿// See https://aka.ms/new-console-template for more information
+using iText.IO.Image;
+using iText.Kernel.Geom;
+using iText.Kernel.Pdf;
+using iText.Layout;
+using iText.Layout.Element;
 using OpenQA.Selenium;
 using OpenQA.Selenium.Chrome;
 
@@ -26,7 +31,22 @@ do
 }
 while (currentUrl != finalUrl);
 
-// TODO: Stitch them into a PDF with the name on each page
+var imagePaths = Directory.EnumerateFiles(Directory.GetCurrentDirectory())
+    .Where(path => path.Contains(".png"));
+
+// Based on https://github.com/itext/itext-publications-samples-dotnet/blob/master/itext/itext.samples/itext/samples/sandbox/images/MultipleImages.cs
+Image image = new Image(ImageDataFactory.Create(imagePaths.First()));
+PdfDocument pdfDoc = new PdfDocument(new PdfWriter(Directory.GetCurrentDirectory() + "/compiled.pdf"));
+Document doc = new Document(pdfDoc, new PageSize(image.GetImageWidth(), image.GetImageHeight()));
+
+foreach (var imagePath in imagePaths)
+{
+    image = new Image(ImageDataFactory.Create(imagePath));
+    pdfDoc.AddNewPage(new PageSize(image.GetImageWidth(), image.GetImageHeight()));
+    doc.Add(image);
+}
+
+doc.Close();
 
 static async Task DownloadComicAsync(string comicUrl, string comicName)
 {
@@ -35,7 +55,7 @@ static async Task DownloadComicAsync(string comicUrl, string comicName)
     byte[] imageBytes = await httpClient.GetByteArrayAsync(comicUrl);
 
     string projectDir = Directory.GetCurrentDirectory();
-    string localPath = Path.Combine(projectDir, comicName + ".png");
+    string localPath = System.IO.Path.Combine(projectDir, comicName + ".png");
 
     File.WriteAllBytes(localPath, imageBytes);
 }
