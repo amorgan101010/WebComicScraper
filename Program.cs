@@ -19,6 +19,9 @@ do
     var comicUrl = comic.GetAttribute("src");
     var comicName = comic.GetAttribute("title");
     await DownloadComicAsync(comicUrl, comicName); // TODO: avoid possible nullref
+
+    //TODO: move on to the next URL
+    currentUrl = finalUrl;
 }
 while (currentUrl != finalUrl);
 
@@ -29,7 +32,7 @@ static async Task DownloadComicAsync(string comicUrl, string comicName)
     byte[] imageBytes = await httpClient.GetByteArrayAsync(comicUrl);
 
     string projectDir = Directory.GetCurrentDirectory();
-    string localPath = Path.Combine(projectDir, comicName + ".jpg");
+    string localPath = Path.Combine(projectDir, comicName + ".png");
 
     File.WriteAllBytes(localPath, imageBytes);
 }
