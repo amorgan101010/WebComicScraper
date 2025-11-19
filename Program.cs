@@ -2,21 +2,22 @@
 using iText.IO.Image;
 using iText.Kernel.Geom;
 using iText.Kernel.Pdf;
-using iText.Kernel.Pdf.Event;
 using iText.Layout;
 using iText.Layout.Element;
-using iText.Layout.Properties;
 using OpenQA.Selenium;
 using OpenQA.Selenium.Chrome;
 
+var previousUrl = "";
 var currentUrl = "https://www.nuklearpower.com/2001/03/02/episode-001-were-going-where/";
-//var finalUrl = "https://www.nuklearpower.com/2010/06/01/the-epilogue/";
-const string finalUrl = "https://www.nuklearpower.com/2001/03/14/episode-005-run-heroes-run/";
+var finalUrl = "https://www.nuklearpower.com/2010/06/01/the-epilogue/";
+//const string finalUrl = "https://www.nuklearpower.com/2001/08/19/episode-069-thief-is-one-slick-mo-fo/";
 
 var webdriverOptions = new ChromeOptions();
 webdriverOptions.AddArgument("--headless=new");
 IWebDriver driver = new ChromeDriver(webdriverOptions);
+using HttpClient httpClient = new();
 
+var index = 0;
 do
 {
     driver.Navigate().GoToUrl(currentUrl); // TODO: avoid possible nullref
@@ -26,25 +27,28 @@ do
     var comic = comicDiv.FindElement(By.TagName("img"));
     var comicUrl = comic.GetAttribute("src");
     var comicName = comic.GetAttribute("title");
-    await DownloadComicAsync(comicUrl, comicName); // TODO: avoid possible nullref
+
+    await DownloadComicAsync(httpClient, comicUrl, comicName); // TODO: avoid possible nullref
 
     var nextButton = driver.FindElement(By.ClassName("navbar-next"));
     var nextLink = nextButton.FindElement(By.TagName("a"));
+    previousUrl = currentUrl;
     currentUrl = nextLink.GetAttribute("href");
 
+    index++;
 }
-while (currentUrl != finalUrl);
+while (previousUrl != finalUrl);
 
 var imagePaths = Directory.EnumerateFiles(Directory.GetCurrentDirectory())
-    .Where(path => path.Contains(".png"));
+    .Where(path => path.Contains(".png")).ToList();
+
+imagePaths.Sort();
 
 // Based on https://github.com/itext/itext-publications-samples-dotnet/blob/master/itext/itext.samples/itext/samples/sandbox/images/MultipleImages.cs
 Image image = new Image(ImageDataFactory.Create(imagePaths.First()));
 PdfDocument pdfDoc = new PdfDocument(new PdfWriter(Directory.GetCurrentDirectory() + "/compiled.pdf"));
 Document doc = new Document(pdfDoc, new PageSize(image.GetImageWidth(), image.GetImageHeight()));
 
-// TODO: As it is currently this isn't going to preserve the order of non-numbered strips...
-// I need to tack on an absolute number to each image name and remove it when labeling the PDF.
 foreach (var imagePath in imagePaths)
 {
     image = new Image(ImageDataFactory.Create(imagePath));
@@ -55,7 +59,12 @@ foreach (var imagePath in imagePaths)
     // Add header
     // Adapted from https://github.com/itext/itext-publications-samples-dotnet/blob/master/itext/itext.samples/itext/samples/sandbox/events/VariableHeader.cs
     var page = pdfDoc.GetLastPage();
-    var header = imagePath.Split("/").Last().Split(".png").First();
+    var header = imagePath // I need to learn regex...
+        .Split("/")
+        .Last()
+        .Split(".png")
+        .First()
+        .Substring(4);
     var debugPageSize = page.GetPageSize();
     var yOffset = 20;
     new Canvas(page, pageSize)
@@ -69,14 +78,14 @@ foreach (var imagePath in imagePaths)
 
 doc.Close();
 
-static async Task DownloadComicAsync(string comicUrl, string comicName)
+async Task DownloadComicAsync(HttpClient httpClient, string comicUrl, string comicName)
 {
     // adapted from https://www.reddit.com/r/csharp/comments/11r7o1d/comment/jc6zy2g/
-    using HttpClient httpClient = new();
     byte[] imageBytes = await httpClient.GetByteArrayAsync(comicUrl);
 
     string projectDir = Directory.GetCurrentDirectory();
-    string localPath = System.IO.Path.Combine(projectDir, comicName + ".png");
+    var indexStr = index.ToString("D4");
+    string localPath = System.IO.Path.Combine(projectDir, indexStr + comicName + ".png");
 
     File.WriteAllBytes(localPath, imageBytes);
 }
