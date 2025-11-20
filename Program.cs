@@ -7,9 +7,11 @@ using iText.Layout.Element;
 using OpenQA.Selenium;
 using OpenQA.Selenium.Chrome;
 
-var previousUrl = "";
-var currentUrl = "https://www.nuklearpower.com/2001/03/02/episode-001-were-going-where/";
-var finalUrl = "https://www.nuklearpower.com/2010/06/01/the-epilogue/";
+string previousUrl;
+const string firstUrl = "https://www.nuklearpower.com/2001/03/02/episode-001-were-going-where/";
+//const string firstUrl = "https://www.nuklearpower.com/2010/03/20/episode-1224-a-legend-is-born/";
+var currentUrl = firstUrl;
+const string finalUrl = "https://www.nuklearpower.com/2010/06/01/the-epilogue/";
 //const string finalUrl = "https://www.nuklearpower.com/2001/08/19/episode-069-thief-is-one-slick-mo-fo/";
 
 var webdriverOptions = new ChromeOptions();
@@ -18,23 +20,31 @@ IWebDriver driver = new ChromeDriver(webdriverOptions);
 using HttpClient httpClient = new();
 var episodes = new List<Episode>();
 var index = 0;
+//var index = 1311;
 do
 {
+
     driver.Navigate().GoToUrl(currentUrl); // TODO: avoid possible nullref
-    driver.Manage().Timeouts().ImplicitWait = TimeSpan.FromMilliseconds(500);
+    driver.Manage().Timeouts().ImplicitWait = TimeSpan.FromMilliseconds(200);
 
-    var comicDiv = driver.FindElement(By.Id("comic"));
-    var comic = comicDiv.FindElement(By.TagName("img"));
-    var comicUrl = comic.GetAttribute("src");
-    var comicName = comic.GetAttribute("title");
+    if(index != 548) // this episode was a flash file
+    {
+        var comicDiv = driver.FindElement(By.Id("comic"));
+        var comic = comicDiv.FindElement(By.TagName("img"));
+        var comicUrl = comic.GetAttribute("src");
+        var comicName = comic.GetAttribute("title");
 
-    var episode = await DownloadComicAsync(httpClient, comicUrl, comicName); // TODO: avoid possible nullref
-    episodes.Add(episode);
+        var episode = await DownloadComicAsync(httpClient, comicUrl, comicName); // TODO: avoid possible nullref
+        episodes.Add(episode);
+    }
 
-    var nextButton = driver.FindElement(By.ClassName("navbar-next"));
-    var nextLink = nextButton.FindElement(By.TagName("a"));
     previousUrl = currentUrl;
-    currentUrl = nextLink.GetAttribute("href");
+    if(previousUrl != finalUrl)
+    {
+        var nextButton = driver.FindElement(By.ClassName("navbar-next"));
+        var nextLink = nextButton.FindElement(By.TagName("a"));
+        currentUrl = nextLink.GetAttribute("href");
+    }
 
     index++;
 }
@@ -42,7 +52,7 @@ while (previousUrl != finalUrl);
 
 // Based on https://github.com/itext/itext-publications-samples-dotnet/blob/master/itext/itext.samples/itext/samples/sandbox/images/MultipleImages.cs
 Image image = new Image(ImageDataFactory.Create(episodes.First().Path));
-PdfDocument pdfDoc = new PdfDocument(new PdfWriter(Directory.GetCurrentDirectory() + "/compiled.pdf"));
+PdfDocument pdfDoc = new PdfDocument(new PdfWriter(Directory.GetCurrentDirectory() + "/8-Bit Theatre.pdf"));
 Document doc = new Document(pdfDoc, new PageSize(image.GetImageWidth(), image.GetImageHeight()));
 
 foreach (var episode in episodes)
